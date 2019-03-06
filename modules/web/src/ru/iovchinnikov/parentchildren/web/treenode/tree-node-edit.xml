@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<window xmlns="http://schemas.haulmont.com/cuba/window.xsd"
+        caption="msg://editorCaption"
+        class="ru.iovchinnikov.parentchildren.web.treenode.TreeNodeEdit"
+        datasource="nodeDs"
+        focusComponent="fieldGroup"
+        messagesPack="ru.iovchinnikov.parentchildren.web.treenode">
+    <dsContext>
+        <datasource id="nodeDs"
+                    class="ru.iovchinnikov.parentchildren.entity.TreeNode"
+                    view="node-view">
+            <!--<datasource id="prodDs"-->
+                        <!--property="prod">-->
+                <!--<collectionDatasource id="childrenDs"-->
+                                      <!--property="children">-->
+                    <!--<datasource id="kidDs" property="child"/>-->
+                <!--</collectionDatasource>-->
+            <!--</datasource>-->
+        </datasource>
+    </dsContext>
+    <dialogMode height="600"
+                width="800"/>
+    <layout expand="windowActions"
+            spacing="true">
+        <fieldGroup id="fieldGroup"
+                    datasource="nodeDs">
+            <column>
+                <field property="prod.name"/>
+                <field editable="false"
+                       property="parent"/>
+                <field property="amount"/>
+            </column>
+        </fieldGroup>
+        <!--<groupTable>-->
+            <!--<columns>-->
+                <!--<column id="child.name"/>-->
+                <!--<column id="amnt"/>-->
+            <!--</columns>-->
+            <!--<rows datasource="childrenDs"/>-->
+        <!--</groupTable>-->
+        <frame id="windowActions"
+               screen="editWindowActions"/>
+    </layout>
+</window>

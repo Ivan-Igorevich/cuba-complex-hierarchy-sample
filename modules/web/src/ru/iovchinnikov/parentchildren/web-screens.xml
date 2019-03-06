@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<screen-config xmlns="http://schemas.haulmont.com/cuba/screens.xsd">
+    <screen id="parentchildren$Prod.browse"
+            template="ru/iovchinnikov/parentchildren/web/prod/prod-browse.xml"/>
+    <screen id="parentchildren$Prod.edit"
+            template="ru/iovchinnikov/parentchildren/web/prod/prod-edit.xml"/>
+    <screen id="parentchildren$ProdEntry.browse"
+            template="ru/iovchinnikov/parentchildren/web/prodentry/prod-entry-browse.xml"/>
+    <screen id="parentchildren$ProdEntry.edit"
+            template="ru/iovchinnikov/parentchildren/web/prodentry/prod-entry-edit.xml"/>
+    <screen id="parentchildren$TreeNode.edit"
+            template="ru/iovchinnikov/parentchildren/web/treenode/tree-node-edit.xml"/>
+    <screen id="parentchildren$Prod.hierarchy"
+            template="ru/iovchinnikov/parentchildren/web/prod/prod-hierarchy.xml"/>
+</screen-config>

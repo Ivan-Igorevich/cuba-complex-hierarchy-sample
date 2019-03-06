@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<window xmlns="http://schemas.haulmont.com/cuba/window.xsd"
+        caption="msg://editorCaption"
+        class="ru.iovchinnikov.parentchildren.web.prod.ProdEdit"
+        datasource="prodDs"
+        focusComponent="fieldGroup"
+        messagesPack="ru.iovchinnikov.parentchildren.web.prod">
+    <dsContext>
+        <datasource id="prodDs"
+                    class="ru.iovchinnikov.parentchildren.entity.Prod"
+                    view="prod-view">
+            <collectionDatasource id="childrenDs" property="children" />
+            <collectionDatasource id="parentsDs" property="parents" />
+        </datasource>
+    </dsContext>
+    <dialogMode height="600"
+                width="800"/>
+    <layout expand="windowActions"
+            spacing="true">
+        <fieldGroup id="fieldGroup"
+                    datasource="prodDs">
+            <column width="250px">
+                <field property="name"/>
+            </column>
+        </fieldGroup>
+        <table id="tblKids" caption="msg://tblKids">
+            <actions>
+                <action id="create" />
+                <action id="edit" />
+                <action id="remove" />
+            </actions>
+            <buttonsPanel id="kidsbtnpan">
+                <button id="kidsbtnCreate" action="tblKids.create" />
+                <button id="kidsbtnEdit" action="tblKids.edit" />
+                <button id="kidsbtnRemove" action="tblKids.remove" />
+            </buttonsPanel>
+            <columns>
+                <column id="child.name"/>
+                <column id="amnt"/>
+            </columns>
+            <rows datasource="childrenDs"/>
+        </table>
+        <table id="tblParents" caption="msg://tblPrnt">
+            <actions>
+                <action id="create" />
+                <action id="edit" />
+                <action id="remove" />
+            </actions>
+            <buttonsPanel id="parentbtnpan">
+                <button id="parentbtnCreate" action="tblParents.create" />
+                <button id="parentbtnEdit" action="tblParents.edit" />
+                <button id="parentbtnRemove" action="tblParents.remove" />
+            </buttonsPanel>
+            <columns>
+                <column id="parent.name"/>
+                <column id="amnt"/>
+            </columns>
+            <rows datasource="parentsDs"/>
+        </table>
+        <frame id="windowActions"
+               screen="editWindowActions"/>
+    </layout>
+</window>

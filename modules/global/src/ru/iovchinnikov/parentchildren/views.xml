@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<views xmlns="http://schemas.haulmont.com/cuba/view.xsd">
+    <view class="ru.iovchinnikov.parentchildren.entity.Prod"
+          extends="_local"
+          name="prod-view">
+        <property name="parents"
+                  view="_minimal">
+            <property name="amnt"/>
+            <property name="parent"
+                      view="_minimal"/>
+        </property>
+        <property name="children"
+                  view="_minimal">
+            <property name="child"
+                      view="_minimal">
+            </property>
+            <property name="amnt"/>
+        </property>
+    </view>
+    <view class="ru.iovchinnikov.parentchildren.entity.ProdEntry"
+          extends="_local"
+          name="prodEntry-view">
+        <property name="parent"
+                  view="_minimal"/>
+        <property name="child"
+                  view="_minimal"/>
+    </view>
+    <view entity="parentchildren$TreeNode"
+          name="node-view" extends="_local">
+        <property name="prod" view="prod-view"/>
+        <property name="parent"/>
+        <property name="amount"/>
+    </view>
+</views>

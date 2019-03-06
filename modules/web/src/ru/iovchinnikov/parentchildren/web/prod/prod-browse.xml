@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<window xmlns="http://schemas.haulmont.com/cuba/window.xsd"
+        caption="msg://browseCaption"
+        class="ru.iovchinnikov.parentchildren.web.prod.ProdBrowse"
+        focusComponent="prodsTable"
+        lookupComponent="prodsTable"
+        messagesPack="ru.iovchinnikov.parentchildren.web.prod">
+    <dsContext>
+        <groupDatasource id="prodsDs"
+                         class="ru.iovchinnikov.parentchildren.entity.Prod"
+                         view="prod-view">
+            <query>
+                <![CDATA[select e from parentchildren$Prod e]]>
+            </query>
+        </groupDatasource>
+    </dsContext>
+    <dialogMode height="600"
+                width="800"/>
+    <layout expand="prodsTable"
+            spacing="true">
+        <filter id="filter"
+                applyTo="prodsTable"
+                datasource="prodsDs">
+            <properties include=".*"/>
+        </filter>
+        <groupTable id="prodsTable"
+                    width="100%">
+            <actions>
+                <action id="create"/>
+                <action id="edit"/>
+                <action id="remove"/>
+            </actions>
+            <columns>
+                <column id="name"/>
+            </columns>
+            <rows datasource="prodsDs"/>
+            <rowsCount/>
+            <buttonsPanel id="buttonsPanel"
+                          alwaysVisible="true">
+                <button id="createBtn"
+                        action="prodsTable.create"/>
+                <button id="editBtn"
+                        action="prodsTable.edit"/>
+                <button id="removeBtn"
+                        action="prodsTable.remove"/>
+            </buttonsPanel>
+        </groupTable>
+    </layout>
+</window>
