@@ -50,7 +50,6 @@ public class ProdHierarchy extends AbstractLookup {
                 Prod p = thisNode != null ? thisNode.getProd() : null;
                 AbstractEditor e = openEditor("parentchildren$Prod.edit", p, WindowManager.OpenType.DIALOG);
                 e.addCloseWithCommitListener(() -> prodsDs.refresh());
-
             }
         });
         prodsTable.addAction(new RemoveAction(prodsTable, true, "remove") {
@@ -68,12 +67,5 @@ public class ProdHierarchy extends AbstractLookup {
                 prodsDs.refresh();
             }
         });
-    }
-
-    @Override
-    public void ready() {
-        super.ready();
-
-        //prodsTableEdit.setWindowId("parentchildren$TreeNode.edit");
     }
 }

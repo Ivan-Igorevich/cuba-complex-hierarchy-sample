@@ -20,7 +20,6 @@ public class ProdDs<T extends Entity<K>, K>
     private Metadata metadata = AppBeans.get(Metadata.class);
 
     private void createKids(TreeNode parent) {
-
         List<KeyValueEntity> list = dataManager.loadValues(
                 "select pr, pe.amnt from parentchildren$Prod pr left join pr.parents pe where pe.parent.id = :prnt")
                 .properties("prod", "amount")

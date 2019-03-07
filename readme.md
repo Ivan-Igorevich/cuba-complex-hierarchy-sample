@@ -18,6 +18,8 @@ public class ProdEntry extends StandardEntity {
 # Подготовка неперсистентного контекста
 Для иерархического отображения связи "многие-ко-многим", включающей в себя не только основные сущности, но и вспомогательные сущности с полезной нагрузкой, необходимо создать неперсистентную сущность, объединяющую необходимые для отображения поля обеих сущностей, например
 ``` java
+@NamePattern("%s|prod")
+@MetaClass(name = "parentchildren$TreeNode")
 public class TreeNode extends BaseUuidEntity {
     @MetaProperty protected Prod prod;
     @MetaProperty protected TreeNode parent;
@@ -26,9 +28,9 @@ public class TreeNode extends BaseUuidEntity {
 ```
 
 # Подготовка источника данных
-Поскольку основные сущности будут содержать довольно сложную связь через вспомогательную сущность - использовать стандартный источник данных не представляется возможным. Для формирования корректных связей внутри источника данных необходимо переопределить `HierarchicalDatasource`, переопределив в нём метод `loadData()`.
+Поскольку основные сущности будут содержать довольно сложную связь через вспомогательную сущность - использовать стандартный источник данных не представляется возможным. Для формирования корректных связей внутри источника данных необходимо переопределить `HierarchicalDatasource`, переопределив в нём метод `loadData(Map<String, Object>)`.
 
-Метод `loadData()` выполняется, когда необходимо загрузить данные из персистентного контекста. Данные для выгрузки сохраняются в `LinkedMap data;` где ключ - это id объекта, а значение - сам объект.
+Метод `loadData(Map<String, Object>)` выполняется, когда необходимо загрузить данные из персистентного контекста. Данные для выгрузки сохраняются в поле `LinkedMap data;` где ключ - это id объекта, а значение - сам объект.
 
 ``` java
 public class ProdDs<T extends Entity<K>, K>
@@ -39,7 +41,6 @@ public class ProdDs<T extends Entity<K>, K>
     private Metadata metadata = AppBeans.get(Metadata.class);
 
     private void createKids(TreeNode parent) {
-
         List<KeyValueEntity> list = dataManager.loadValues(
                 "select pr, pe.amnt from parentchildren$Prod pr left join pr.parents pe where pe.parent.id = :prnt")
                 .properties("prod", "amount")
@@ -91,7 +92,7 @@ public class ProdDs<T extends Entity<K>, K>
 ```
 
 # Манипуляции с данными
-При использовании стандартных действий необходимо учесть то, что при нажатии кнопок таблица будет пытаться выполнить действия соответствующие той сущности, которая отображается в таблице, то есть, в данном случае `@MetaClass TreeNode`. Поэтому стандартные теги `<action>` следует удалить, не изменяя при этом привязку кнопок к этим действиям, и в контроллере, в методе `@Override public void init(Map<String, Object> params)` создать для таблицы новые экшны с соответствующими названиями.
+При использовании стандартных действий необходимо учесть то, что при нажатии кнопок таблица будет пытаться выполнить действия соответствующие той сущности, которая отображается в таблице, то есть, в данном случае `@MetaClass TreeNode`. Поэтому стандартные теги `<action>` следует удалить, не изменяя при этом привязку кнопок к этим действиям, и в контроллере, в методе `@Override public void init(Map<String, Object>)` создать для таблицы новые экшны с соответствующими названиями.
 
 ## Создание
 ``` java
@@ -131,4 +132,35 @@ public class ProdEdit extends AbstractEditor<Prod> {
 ```
 
 ## Редактирование
+При редактировании объекта, важно учесть только тот факт, что редактироваться будет не тот объект, который выделен в строке таблицы, а те, которые содержатся внутри него. Таким образом возмникает несколько путей решения данной задачи - создание отдельного экрана для редактирования всех сущностей, входящих в состав неперсистентного объекта, расширение экрана редактирования неперсистентного объекта, или вызов экрана редактирования основной сущности, предоставив пользовалелю редактировать составные части иерархии самостоятельно, через списки внутри основной сущности. Пример кода ниже демонстрирует третий подход.
+``` java
+prodsTable.addAction(new EditAction(prodsTable, WindowManager.OpenType.DIALOG, "edit") {
+    @Override
+    public void actionPerform(Component component) {
+        TreeNode thisNode = prodsTable.getSingleSelected();
+        Prod p = thisNode != null ? thisNode.getProd() : null;
+        AbstractEditor e = openEditor("parentchildren$Prod.edit", p, WindowManager.OpenType.DIALOG);
+        e.addCloseWithCommitListener(() -> prodsDs.refresh());
+    }
+});
+```
+
 ## Удаление
+При удалении объекта из таблицы следует разработать индивидуальную модель поведения, которая будет соответствовать задаче. В примере ниже описано поведение, удаляющее как сам выделенный в таблице объект, так и связи наверх и вниз по иерархии от него. Собственно удаление производит метод `doRemove(HashSet<? extends Entity>);` который нужно вызвать из переопределённого метода `@Override public void actionPerform(Component)`, предварительно сформировав множество из удаляемых объектов.
+``` java
+prodsTable.addAction(new RemoveAction(prodsTable, true, "remove") {
+    @Override
+    public void actionPerform(Component component) {
+        TreeNode thisNode = prodsTable.getSingleSelected();
+        Prod p = thisNode != null ? thisNode.getProd() : null;
+        List<ProdEntry> lst = dataManager.loadList(
+                LoadContext.create(ProdEntry.class)
+                        .setQuery(LoadContext.createQuery("select e from parentchildren$ProdEntry e where e.child.id = :pid or e.parent.id = :pid")
+                                .setParameter("pid", p)));
+        HashSet<Entity> set = new HashSet<>(lst);
+        set.add(p);
+        doRemove(set, true);
+        prodsDs.refresh();
+    }
+});
+```
