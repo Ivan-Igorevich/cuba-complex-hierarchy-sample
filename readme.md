@@ -30,6 +30,8 @@ public class TreeNode extends BaseUuidEntity {
 # Подготовка источника данных
 Поскольку основные сущности будут содержать довольно сложную связь через вспомогательную сущность - использовать стандартный источник данных не представляется возможным. Для формирования корректных связей внутри источника данных необходимо переопределить `HierarchicalDatasource`, переопределив в нём метод `loadData(Map<String, Object>)`.
 
+Для CUBA 7.0 и выше (тестировалось на CUBA 7.1) в связи с переходом от системы Datasource к системе Datacontainer и Dataloader, `HierarchicalDatasource` создавать не нужно, его заменит `private List<ProdTreeNode> customProductLoadDelegate(LoadContext<ProdTreeNode> loadContext)`. Делегат создаётся в контроллере `browse` формы и содержит создание списка сущностей, которые нужно будет положить в контейнер, а также вызов метода, наполняющего этот список. Метод в этом случае желательно поместить в сервис приложения и вынести на слой middleware. Для данного примера это будет метод `createKids`, переделанный таким образом, чтобы возвращать список.
+
 Метод `loadData(Map<String, Object>)` выполняется, когда необходимо загрузить данные из персистентного контекста. Данные для выгрузки сохраняются в поле `LinkedMap data;` где ключ - это id объекта, а значение - сам объект.
 
 ``` java
@@ -69,7 +71,7 @@ public class ProdDs<T extends Entity<K>, K>
     }
 }
 ```
-Таким образом будет создан источник данных, формирующий связи в виртуальном дереве от родителя к наследникам, записывающий необходимые данные в виртуальный узел и подготавливающий этот узел к отображению в таблице. Также необходимо добавить корректный `view`, чтобы источник данных содержал весь перечень ссылок и полей. Для этого в файле `global/views.xml` необходимо явно прописать вью для узла
+Также для CUBA 7.0 и выше следует обратить внимание, что в `KeyValueEntity` возвращается не `<String, String>`, а те типы, которые есть в модели данных, то есть, например, `amount` будет сразу `Integer`, и разделителем в базе данных должен быть не `$`, а `_`. Таким образом будет создан источник данных, формирующий связи в виртуальном дереве от родителя к наследникам, записывающий необходимые данные в виртуальный узел и подготавливающий этот узел к отображению в таблице. Также необходимо добавить корректный `view`, чтобы источник данных содержал весь перечень ссылок и полей. Для этого в файле `global/views.xml` необходимо явно прописать вью для узла
 
 ``` xml
     <view entity="parentchildren$TreeNode"
@@ -79,9 +81,9 @@ public class ProdDs<T extends Entity<K>, K>
         <property name="amount"/>
     </view>
 ```
-
 # Подготовка экранов
 Корректно подготовленный источник данных может быть использован в стандартных компонентах. В данном примере это `<treeTable>`. На форме, содержащей таблицу необходимо подключить источник данных, созданный на предыдущем шаге
+
 ``` xml
 <hierarchicalDatasource id="prodsDs"
                         class="ru.iovchinnikov.parentchildren.entity.TreeNode"
@@ -98,11 +100,12 @@ public class ProdDs<T extends Entity<K>, K>
            <rows datasource="prodsDs"/>
 </treeTable>
 ```
+CUBA 7.0 иначе работает с источниками данных, поэтому свойство `hierarchyProperty` будет содежаться не в источнике данных, а на таблице.
 
 При описании таблицы важно обратить внимание на то, что источник данных, как и сама таблица будут отображать созданную неперсистентную сущность, что вынуждает явно описывать процессы создания, редактирования и удаления.
 
 # Манипуляции с данными
-При использовании стандартных действий необходимо учесть то, что при нажатии кнопок таблица будет пытаться выполнить действия соответствующие той сущности, которая отображается в таблице, то есть, в данном случае `@MetaClass TreeNode`. Поэтому стандартные теги `<action>` следует удалить, не изменяя при этом привязку кнопок к этим действиям, и в контроллере, в методе `@Override public void init(Map<String, Object>)` создать для таблицы новые экшны с соответствующими названиями.
+При использовании стандартных действий необходимо учесть то, что при нажатии кнопок таблица будет пытаться выполнить действия соответствующие той сущности, которая отображается в таблице, то есть, в данном случае `@MetaClass TreeNode`. Поэтому стандартные теги `<action>` следует удалить, не изменяя при этом привязку кнопок к этим действиям, и в контроллере, в методе `@Override public void init(Map<String, Object>)` создать для таблицы новые экшны с соответствующими названиями. Для CUBA 7.0 контроллеры следует вписывать в подписку на `initEvent` поскольку именно на этом этапе загрузки окна ещё не созданы зависимости кнопок и экшнов таблицы.
 
 ## Создание
 ``` java
@@ -141,6 +144,29 @@ public class ProdEdit extends AbstractEditor<Prod> {
 }
 ```
 
+Для платформы 7.0 и выше для переопределения действий используется система подписок и назначения делегатов, поэтому код может принять следующий вид
+
+```java
+@Subscribe("productsTable.create")
+private void onProductsTableCreate(Action.ActionPerformedEvent event) {
+    ProductTreeNode thisNode = productsTable.getSingleSelected();
+    Product thisProd = (thisNode == null) ? null : thisNode.getProd();
+    Product p = metadata.create(Product.class);
+    ArrayList<ProductEntry> pts = new ArrayList<>();
+    ProductEntry pe = metadata.create(ProductEntry.class);
+    pe.setParent(thisProd);
+    pe.setChild(p);
+    pe.setAmount(1);
+    pts.add(pe);
+    p.setParents(pts);
+
+    StandardEditor<Product> pse = screens.create(ProductEdit.class);
+    pse.setEntityToEdit(p);
+    pse.show();
+    pse.addAfterCloseListener((e) -> productsDl.load());
+}
+```
+
 ## Редактирование
 При редактировании объекта, важно учесть только тот факт, что редактироваться будет не тот объект, который выделен в строке таблицы, а те, которые содержатся внутри него. Таким образом возмникает несколько путей решения данной задачи - создание отдельного экрана для редактирования всех сущностей, входящих в состав неперсистентного объекта, расширение экрана редактирования неперсистентного объекта, или вызов экрана редактирования основной сущности, предоставив пользовалелю редактировать составные части иерархии самостоятельно, через списки внутри основной сущности. Пример кода ниже демонстрирует третий подход.
 ``` java
@@ -153,6 +179,17 @@ prodsTable.addAction(new EditAction(prodsTable, WindowManager.OpenType.DIALOG, "
         e.addCloseWithCommitListener(() -> prodsDs.refresh());
     }
 });
+```
+
+или для 7.0
+
+```java
+ProductTreeNode thisNode = productsTable.getSingleSelected();
+Product p = thisNode != null ? thisNode.getProd() : null;
+StandardEditor<Product> pse = screens.create(ProductEdit.class);
+pse.setEntityToEdit(p);
+pse.show();
+pse.addAfterCloseListener((e) -> productsDl.load());
 ```
 
 ## Удаление
@@ -173,4 +210,28 @@ prodsTable.addAction(new RemoveAction(prodsTable, true, "remove") {
         prodsDs.refresh();
     }
 });
+```
+
+или для 7.0
+
+```java
+ProductTreeNode thisNode = productsTable.getSingleSelected();
+Product p = thisNode != null ? thisNode.getProd() : null;
+productHierarcyService.removeLinks(p);
+productsDl.load();
+```
+
+при этом внутри сервиса удаление будет происходить напрямую при помощи `dataManager`
+
+```java
+@Override
+public void removeLinks(Product product) {
+    List<ProductEntry> lst = dataManager.loadList(
+            LoadContext.create(ProductEntry.class)
+                    .setQuery(LoadContext.createQuery("select e from cmec_ProductEntry e where e.child.id = :pid or e.parent.id = :pid")
+                            .setParameter("pid", product.getId())));
+    for (int i = 0; i < lst.size(); i++)
+        dataManager.remove(lst.get(i));
+    dataManager.remove(product);
+}
 ```
